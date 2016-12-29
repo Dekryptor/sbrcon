@@ -5,6 +5,7 @@
 #include "ui_mainwindow.h"
 #include "rconclient.h"
 #include "rconwindow.h"
+#include "global.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,10 +15,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     setShowPassword(false);
 
-    this->settings = new QSettings(QStringLiteral("csnxs"), QStringLiteral("sbrcon"), this);
-    this->settings->beginGroup("meta");
-    this->settings->setValue("started", true);
-    this->settings->endGroup();
+    settings->beginGroup("meta");
+    settings->setValue("started", true);
+    settings->endGroup();
 
 #ifdef _WIN32
     if (QtWin::isCompositionEnabled())
@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    delete this->settings;
+    delete settings;
 
     delete ui;
 }
@@ -93,8 +93,7 @@ void MainWindow::startConnect(QHostInfo host)
 void MainWindow::onConnect(QString hostname)
 {
     qDebug() << "Connected to" << hostname;
-    RconWindow *window = new RconWindow(client);
+    RconWindow *window = new RconWindow(client, nullptr);
     window->setWindowTitle(QString("sbrcon - %1").arg(hostname));
     window->show();
-    this->destroy(true, false);
 }

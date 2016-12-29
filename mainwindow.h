@@ -36,8 +36,6 @@ class MainWindow : public QMainWindow
 
         Ui::MainWindow *ui;
 
-        QSettings *settings;
-
         void setShowPassword(bool v);
 
         RconClient *client;

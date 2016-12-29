@@ -1,5 +1,8 @@
 #include <QtWinExtras>
 #include <QCompleter>
+#include <QMessageBox>
+
+#include <cstdio>
 
 #include "rconwindow.h"
 #include "ui_rconwindow.h"
@@ -50,6 +53,7 @@ void RconWindow::appendLine(QString line)
 
 void RconWindow::onMessage(QString message)
 {
+    printf("%s\n", message.toStdString().c_str());
     appendLine(message);
 }
 
@@ -139,4 +143,9 @@ void RconWindow::onPlayers(QStringList players)
 {
     QStringListModel *model = new QStringListModel(players);
     ui->lvPlayerList->setModel(model);
+}
+
+void RconWindow::on_actionAbout_Qt_triggered()
+{
+    QMessageBox::aboutQt(this, QStringLiteral("About Qt"));
 }

@@ -31,7 +31,8 @@ HEADERS  += mainwindow.h \
     version.h \
     rconclient.h \
     huffman/huffman.h \
-    rconwindow.h
+    rconwindow.h \
+    global.h
 
 FORMS    += mainwindow.ui \
     rconwindow.ui

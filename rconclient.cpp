@@ -65,7 +65,7 @@ RconClient::RconClient(QHostAddress address, quint16 port, QString password, QOb
 
 RconClient::~RconClient()
 {
-    qDebug() << "Destructing";
+    disconnect();
 }
 
 void RconClient::readPackets()
@@ -294,6 +294,8 @@ void RconClient::sendPong()
 
 void RconClient::disconnect()
 {
+    emit message(QStringLiteral("Disconnecting."));
+
     QByteArray packet;
     packet.append(CLRC_DISCONNECT);
     writePacket(packet);
@@ -302,6 +304,8 @@ void RconClient::disconnect()
 
     socket->disconnectFromHost();
     delete socket;
+
+    emit message(QStringLiteral("Disconnected."));
 }
 
 void RconClient::tabComplete(QString command)

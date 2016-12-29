@@ -42,6 +42,8 @@ class RconWindow : public QMainWindow
 
         void onPong();
 
+        void on_actionAbout_Qt_triggered();
+
     private:
         void closeEvent(QCloseEvent *event);
         void doCompletion();
