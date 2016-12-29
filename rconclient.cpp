@@ -1,3 +1,5 @@
+#include <QCryptographicHash>
+
 #include "rconclient.h"
 #include "huffman/huffman.h"
 
@@ -32,40 +34,46 @@ enum
 };
 
 const int PROTOCOL_VERSION = 4;
+const int PONG_INTERVAL = 5000;
 
-RconClient::RconClient(QString address, quint16 port, QString password, QObject *parent) : QObject(parent)
+QString readQString(QBuffer &buffer);
+
+RconClient::RconClient(QHostAddress address, quint16 port, QString password, QObject *parent) : QObject(parent)
 {
+    this->socket = new QUdpSocket(this);
     this->address = address;
     this->port = port;
     this->password = password;
 
-    qDebug() << "Init rcon";
-
-    this->socket = new QUdpSocket(this);
-
     connect(socket, SIGNAL(readyRead()), this, SLOT(readPackets()));
+    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(handleError(QAbstractSocket::SocketError)));
+    connect(&pongTimer, SIGNAL(timeout()), this, SLOT(sendPong()));
 
-    socket->connectToHost(address, port);
+    socket->connectToHost(address.toString(), port, QIODevice::ReadWrite, QAbstractSocket::IPv4Protocol);
+
+    if (!socket->waitForConnected())
+    {
+        qWarning() << "Failed to connect";
+        emit timedOut();
+    }
 
     QByteArray packet;
     packet.append(CLRC_BEGINCONNECTION);
     packet.append(PROTOCOL_VERSION);
-    writePacket(packet, false);
+    writePacket(packet);
+}
+
+RconClient::~RconClient()
+{
+    qDebug() << "Destructing";
 }
 
 void RconClient::readPackets()
 {
     while (socket->hasPendingDatagrams())
     {
-        qDebug() << "Read datagram";
         QByteArray packet = socket->read(socket->pendingDatagramSize());
-
-        const unsigned char *in = (const unsigned char*) packet.constData();
-        unsigned char out[4096];
-        int outlen;
-
-        HUFFMAN_Decode(in, out, packet.size(), &outlen);
-        QByteArray decoded((char*)out, outlen);
+        QByteArray decoded = huffman::decode(packet);
 
         QBuffer buffer(&decoded);
 
@@ -84,6 +92,7 @@ void RconClient::parsePacket(QBuffer &packet)
         case SVRC_BANNED:
         {
             qWarning() << "You are banned from connecting to this server.";
+            emit banned();
 
             break;
         }
@@ -91,6 +100,7 @@ void RconClient::parsePacket(QBuffer &packet)
         case SVRC_OLDPROTOCOL:
         {
             qWarning() << "Incorrect version.";
+            emit oldProtocol();
 
             break;
         }
@@ -98,13 +108,152 @@ void RconClient::parsePacket(QBuffer &packet)
         case SVRC_INVALIDPASSWORD:
         {
             qWarning() << "Invalid password.";
+            emit invalidPassword();
 
             break;
         }
 
         case SVRC_SALT:
         {
-            qDebug() << "OK: received salt.";
+            qDebug() << "Authenticating...";
+            QString salt = readQString(packet);
+            QByteArray saltba = salt.toLatin1();
+            QCryptographicHash md5(QCryptographicHash::Md5);
+            md5.addData(salt.toLatin1() + password.toLatin1());
+
+            QByteArray packet;
+            packet.append(CLRC_PASSWORD);
+            packet.append(md5.result().toHex());
+            packet.append('\0');
+
+            writePacket(packet, false);
+
+            break;
+        }
+
+        case SVRC_LOGGEDIN:
+        {
+            qDebug() << "Connected!";
+            char protocol;
+            packet.getChar(&protocol);
+            hostname = readQString(packet);
+            emit connected(hostname);
+
+            char updates;
+            packet.getChar(&updates);
+
+            for (int i = 0; i < updates; i++)
+            {
+                parseUpdate(packet);
+            }
+
+            char historyLines;
+            packet.getChar(&historyLines);
+
+            emit message(QStringLiteral("<b>*** Begin Message History</b>"));
+            for (int i = 0; i < historyLines; i++)
+            {
+                emit message(readQString(packet));
+            }
+            emit message(QStringLiteral("<b>*** End Message History</b>"));
+
+            pongTimer.start(PONG_INTERVAL);
+
+            break;
+        }
+
+        case SVRC_UPDATE:
+        {
+            parseUpdate(packet);
+
+            break;
+        }
+
+        case SVRC_MESSAGE:
+        {
+            emit message(readQString(packet));
+
+            break;
+        }
+
+        case SVRC_TABCOMPLETE:
+        {
+            char numCompletions;
+            packet.getChar(&numCompletions);
+
+            QStringList list;
+            for (int i = 0; i < numCompletions; i++)
+            {
+                list.append(readQString(packet));
+            }
+
+            emit tabCompletion(list);
+
+            break;
+        }
+
+        case SVRC_TOOMANYTABCOMPLETES:
+        {
+            char numCompletions;
+            packet.getChar(&numCompletions);
+
+            emit tabCompletionFailed((int) numCompletions);
+
+            break;
+        }
+
+        default:
+        {
+            qWarning() << "Unknown packet type" << QString(QByteArray(1, type).toHex());
+            break;
+        }
+    }
+}
+
+void RconClient::parseUpdate(QBuffer &packet)
+{
+    char type;
+    packet.getChar(&type);
+
+    switch (type)
+    {
+        case SVRCU_MAP:
+        {
+            emit newMap(readQString(packet));
+
+            break;
+        }
+
+        case SVRCU_ADMINCOUNT:
+        {
+            char number;
+            packet.getChar(&number);
+            emit adminCount(number);
+
+            break;
+        }
+
+        case SVRCU_PLAYERDATA:
+        {
+            char number;
+            packet.getChar(&number);
+
+            QStringList list;
+            for (int i = 0; i < number; i++)
+            {
+                list.append(readQString(packet));
+            }
+
+            emit playerList(list);
+
+            break;
+        }
+
+        default:
+        {
+            qWarning() << "Unknown update type " << type;
+
+            break;
         }
     }
 }
@@ -118,20 +267,55 @@ void RconClient::writePacket(QByteArray array, bool encode)
         return;
     }
 
-    const unsigned char *in = (const unsigned char*) array.constData();
-    unsigned char out[4096];
-    int outlen;
-
-    HUFFMAN_Encode(in, out, array.size(), &outlen);
-    QByteArray written((char*)out, outlen);
-    qDebug() << "Writing packet";
-    this->socket->write(written);
+    this->socket->write(huffman::encode(array));
 }
 
+void RconClient::handleError(QAbstractSocket::SocketError err)
+{
+    qWarning() << "Error:" << err;
+}
+
+void RconClient::sendMessage(QString message)
+{
+    QByteArray array;
+    array.append(CLRC_COMMAND);
+    array.append(message.toLatin1());
+    array.append('\0');
+    writePacket(array);
+}
+
+void RconClient::sendPong()
+{
+    QByteArray array;
+    array.append(CLRC_PONG);
+    writePacket(array);
+    emit pong();
+}
+
+void RconClient::disconnect()
+{
+    QByteArray packet;
+    packet.append(CLRC_DISCONNECT);
+    writePacket(packet);
+
+    pongTimer.stop();
+
+    socket->disconnectFromHost();
+    delete socket;
+}
+
+void RconClient::tabComplete(QString command)
+{
+    QByteArray packet;
+    packet.append(CLRC_TABCOMPLETE);
+    packet.append(command.toLatin1());
+    packet.append('\0');
+    writePacket(packet);
+}
 
 QString readQString(QBuffer &buffer)
 {
-    QString out;
+    QString out("");
     char c;
 
     while (buffer.getChar(&c) && c != '\0')
@@ -139,5 +323,5 @@ QString readQString(QBuffer &buffer)
         out += c;
     }
 
-    return c;
+    return out;
 }

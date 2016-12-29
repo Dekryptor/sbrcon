@@ -4,6 +4,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "rconclient.h"
+#include "rconwindow.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -78,5 +79,22 @@ void MainWindow::on_pbDirectConnect_clicked()
     settings->setValue("password", ui->lePassword->text());
     settings->endGroup();
 
-    RconClient *client = new RconClient(ui->leAddress->text(), ui->sbPort->value(), ui->lePassword->text());
+    QHostInfo::lookupHost(ui->leAddress->text(), this, SLOT(startConnect(QHostInfo)));
+}
+
+void MainWindow::startConnect(QHostInfo host)
+{
+    QHostAddress addr = host.addresses().first();
+    qDebug() << "Connecting to" << addr.toString() << "port" << ui->sbPort->value();
+    this->client = new RconClient(addr, ui->sbPort->value(), ui->lePassword->text());
+    connect(client, SIGNAL(connected(QString)), this, SLOT(onConnect(QString)));
+}
+
+void MainWindow::onConnect(QString hostname)
+{
+    qDebug() << "Connected to" << hostname;
+    RconWindow *window = new RconWindow(client);
+    window->setWindowTitle(QString("sbrcon - %1").arg(hostname));
+    window->show();
+    this->destroy(true, false);
 }

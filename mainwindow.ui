@@ -248,6 +248,7 @@
     <property name="title">
      <string>Recent Connections</string>
     </property>
+    <addaction name="actionNo_recent_connections"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -267,6 +268,14 @@
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About Qt</string>
+   </property>
+  </action>
+  <action name="actionNo_recent_connections">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No recent connections</string>
    </property>
   </action>
  </widget>

@@ -1,55 +1,49 @@
-/*
- * Replacement for older Skulltag Launcher Protocol's huffman.cpp
- * 
- * Copyright 2009 Timothy Landers
- * email: code.vortexcortex@gmail.com
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+// Version 5, released 5/13/2009. Compatible with Zandronum/Skulltag launchers and servers.
+// Modified by Korshun to be const-correct.
+// Also added Qt wrappers here.
 
-//Macro name kept for backwards compatibility.
 #ifndef __HUFFMAN_H__
 #define __HUFFMAN_H__
 
-#include "huffcodec.h"
+#include <QByteArray>
 
-/** Creates and intitializes a HuffmanCodec Object. <br>
- * Also arranges for HUFFMAN_Destruct() to be called upon termination. */
-void HUFFMAN_Construct();
+//*****************************************************************************
+//	STRUCTURES
 
-/** Releases resources allocated by the HuffmanCodec. */
-void HUFFMAN_Destruct();
+typedef struct huffnode_s
+{
+    struct huffnode_s *zero;
+    struct huffnode_s *one;
+    unsigned char val;
+    float freq;
 
-/** Applies Huffman encoding to a block of data. */
-void HUFFMAN_Encode(
-	unsigned char const * const inputBuffer,	/**< in: Pointer to start of data that is to be encoded. */
-	unsigned char * const outputBuffer,			/**< out: Pointer to destination buffer where encoded data will be stored. */
-	int const &inputBufferSize,					/**< in: Number of chars to read from inputBuffer. */
-	int *outputBufferSize						/**< in+out: Max chars to write into outputBuffer. Upon return holds the number of chars stored or 0 if an error occurs. */
-);
+} huffnode_t;
 
-/** Decodes a block of data that is Huffman encoded. */
-void HUFFMAN_Decode(
-	unsigned char const * const inputBuffer,	/**< in: Pointer to start of data that is to be decoded. */
-	unsigned char * const outputBuffer,			/**< out: Pointer to destination buffer where decoded data will be stored. */
-	int const &inputBufferSize,					/**< in: Number of chars to read from inputBuffer. */
-	int *outputBufferSize						/**< in+out: Max chars to write into outputBuffer. Upon return holds the number of chars stored or 0 if an error occurs. */
-);
+typedef struct
+{
+    unsigned int bits;
+    int len;
+
+} hufftab_t;
+
+//*****************************************************************************
+//	PROTOTYPES
+
+void HUFFMAN_Construct( void );
+void HUFFMAN_Destruct( void );
+
+void HUFFMAN_Encode(const unsigned char *in, unsigned char *out, int inlen, int *outlen );
+void HUFFMAN_Decode(const unsigned char *in, unsigned char *out, int inlen, int *outlen );
+
+#ifdef _DEBUG
+void huffman_ZeroFreq( void );
+#endif
+
+namespace huffman
+{
+    QByteArray encode(QByteArray data);
+    QByteArray decode(QByteArray data);
+}
+
 
 #endif // __HUFFMAN_H__

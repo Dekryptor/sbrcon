@@ -24,21 +24,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp\
         mainwindow.cpp \
     rconclient.cpp \
-    huffman/bitreader.cpp \
-    huffman/bitwriter.cpp \
-    huffman/huffcodec.cpp \
-    huffman/huffman.cpp
+    huffman/huffman.cpp \
+    rconwindow.cpp
 
 HEADERS  += mainwindow.h \
     version.h \
     rconclient.h \
-    huffman/bitreader.h \
-    huffman/bitwriter.h \
-    huffman/codec.h \
-    huffman/huffcodec.h \
-    huffman/huffman.h
+    huffman/huffman.h \
+    rconwindow.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    rconwindow.ui
 
 RESOURCES += \
     sbrcon.qrc
