@@ -63,6 +63,7 @@ class RconWindow : public QMainWindow
         void on_lvPlayerList_customContextMenuRequested(const QPoint &pos);
 
         void onKick();
+        void onBan();
 
         void on_lvPlayerList_clicked(const QModelIndex &index);
 

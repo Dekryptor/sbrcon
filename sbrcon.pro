@@ -27,7 +27,8 @@ SOURCES += main.cpp\
     huffman/huffman.cpp \
     rconwindow.cpp \
     dialog/kickdialog.cpp \
-    util.cpp
+    util.cpp \
+    dialog/bandialog.cpp
 
 HEADERS  += mainwindow.h \
     version.h \
@@ -36,11 +37,13 @@ HEADERS  += mainwindow.h \
     rconwindow.h \
     global.h \
     dialog/kickdialog.h \
-    util.h
+    util.h \
+    dialog/bandialog.h
 
 FORMS    += mainwindow.ui \
     rconwindow.ui \
-    dialog/kickdialog.ui
+    dialog/kickdialog.ui \
+    dialog/bandialog.ui
 
 RESOURCES += \
     sbrcon.qrc

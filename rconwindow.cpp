@@ -23,6 +23,7 @@
 #include "rconwindow.h"
 #include "ui_rconwindow.h"
 #include "dialog/kickdialog.h"
+#include "dialog/bandialog.h"
 
 RconWindow::RconWindow(RconClient *rcon, QWidget *parent) :
     QMainWindow(parent),
@@ -188,6 +189,7 @@ void RconWindow::on_lvPlayerList_customContextMenuRequested(const QPoint &pos)
 
     QMenu myMenu;
     myMenu.addAction("Kick", this, SLOT(onKick()));
+    myMenu.addAction("Ban", this, SLOT(onBan()));
 
     myMenu.exec(globalPos);
 }
@@ -202,6 +204,12 @@ QString RconWindow::getSelectedPlayer()
 void RconWindow::onKick()
 {
     KickDialog *dialog = new KickDialog(rcon, getSelectedPlayer(), this);
+    dialog->show();
+}
+
+void RconWindow::onBan()
+{
+    BanDialog *dialog = new BanDialog(rcon, getSelectedPlayer(), this);
     dialog->show();
 }
 
