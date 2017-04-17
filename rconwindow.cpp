@@ -22,6 +22,7 @@
 
 #include "rconwindow.h"
 #include "ui_rconwindow.h"
+#include "dialog/kickdialog.h"
 
 RconWindow::RconWindow(RconClient *rcon, QWidget *parent) :
     QMainWindow(parent),
@@ -39,6 +40,7 @@ RconWindow::RconWindow(RconClient *rcon, QWidget *parent) :
     connect(rcon, SIGNAL(pong()), this, SLOT(onPong()));
     connect(rcon, SIGNAL(playerList(QStringList)), this, SLOT(onPlayers(QStringList)));
     connect(rcon, SIGNAL(adminCount(int)), this, SLOT(onAdmins(int)));
+    connect(ui->lvPlayerList, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(on_lvPlayerList_customContextMenuRequested(QPoint)));
 
 #ifdef _WIN32
     if (QtWin::isCompositionEnabled() && !QtWin::isCompositionOpaque())
@@ -62,6 +64,8 @@ RconWindow::RconWindow(RconClient *rcon, QWidget *parent) :
                 .arg(rcon->getPort())
     );
     ui->statusbar->addPermanentWidget(this->addressLabel);
+
+    ui->lvPlayerList->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 RconWindow::~RconWindow()
@@ -176,4 +180,32 @@ void RconWindow::onPlayers(QStringList players)
 void RconWindow::on_actionAbout_Qt_triggered()
 {
     QMessageBox::aboutQt(this, QStringLiteral("About Qt"));
+}
+
+void RconWindow::on_lvPlayerList_customContextMenuRequested(const QPoint &pos)
+{
+    QPoint globalPos = ui->lvPlayerList->mapToGlobal(pos);
+
+    QMenu myMenu;
+    myMenu.addAction("Kick", this, SLOT(onKick()));
+
+    myMenu.exec(globalPos);
+}
+
+QString RconWindow::getSelectedPlayer()
+{
+    QModelIndex index = ui->lvPlayerList->currentIndex();
+    QString itemText = index.data(Qt::DisplayRole).toString();
+    return itemText;
+}
+
+void RconWindow::onKick()
+{
+    KickDialog *dialog = new KickDialog(rcon, getSelectedPlayer(), this);
+    dialog->show();
+}
+
+void RconWindow::on_lvPlayerList_clicked(const QModelIndex &index)
+{
+    this->selectedPlayer = index.data().toString();
 }

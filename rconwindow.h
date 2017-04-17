@@ -60,9 +60,17 @@ class RconWindow : public QMainWindow
 
         void on_actionAbout_Qt_triggered();
 
+        void on_lvPlayerList_customContextMenuRequested(const QPoint &pos);
+
+        void onKick();
+
+        void on_lvPlayerList_clicked(const QModelIndex &index);
+
     private:
         void closeEvent(QCloseEvent *event);
         void doCompletion();
+
+        QString getSelectedPlayer();
 
         Ui::RconWindow *ui;
 
@@ -71,6 +79,8 @@ class RconWindow : public QMainWindow
         QLabel *adminsLabel;
         QLabel *addressLabel;
         QCompleter *completer;
+
+        QString selectedPlayer;
 };
 
 #endif // RCONWINDOW_H
