@@ -53,6 +53,7 @@ class RconWindow : public QMainWindow
         RconClient *rcon;
 
         QLabel *adminsLabel;
+        QLabel *addressLabel;
         QCompleter *completer;
 };
 

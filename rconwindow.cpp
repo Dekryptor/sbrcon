@@ -38,6 +38,14 @@ RconWindow::RconWindow(RconClient *rcon, QWidget *parent) :
     this->adminsLabel = new QLabel(ui->statusbar);
     this->adminsLabel->setText(QStringLiteral("? admins online"));
     ui->statusbar->addPermanentWidget(this->adminsLabel);
+
+    this->addressLabel = new QLabel(ui->statusbar);
+    this->addressLabel->setText(
+                QString("Connected to %1:%2")
+                .arg(rcon->getAddress().toString())
+                .arg(rcon->getPort())
+    );
+    ui->statusbar->addPermanentWidget(this->addressLabel);
 }
 
 RconWindow::~RconWindow()
@@ -59,7 +67,11 @@ void RconWindow::onMessage(QString message)
 
 void RconWindow::onAdmins(int count)
 {
-    this->adminsLabel->setText(QString("%1 admins online").arg(count));
+    this->adminsLabel->setText(
+                QString("%1 admin%2 online")
+                .arg(count + 1)
+                .arg(count + 1 == 1 ? "" : "s")
+    );
 }
 
 void RconWindow::sendMessage()
